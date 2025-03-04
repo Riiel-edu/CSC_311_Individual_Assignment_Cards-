@@ -20,8 +20,8 @@ public class Card  {
      * @param image the image of the card
      * @param value the value of the card
      */
-    public Card(Image image, int value) {
-        this.image = image;
+    public Card(String image, int value) {
+        this.image = new Image(image);
         this.value = value;
     }
 
