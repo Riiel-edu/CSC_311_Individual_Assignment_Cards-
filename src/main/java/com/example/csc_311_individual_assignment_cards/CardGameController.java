@@ -2,13 +2,9 @@ package com.example.csc_311_individual_assignment_cards;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
-import javafx.scene.control.Label;
-import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
-
-import java.util.Random;
+import java.util.*;
 
 public class CardGameController {
 
@@ -44,16 +40,16 @@ public class CardGameController {
     private ImageView card4;
 
     @FXML
-    private int card1Val;
+    private int val1;
 
     @FXML
-    private int card2Val;
+    private int val2;
 
     @FXML
-    private int card3Val;
+    private int val3;
 
     @FXML
-    private int card4Val;
+    private int val4;
 
     //------------------------------------------------------------------------------------------------------------------------------------------
     //                                                          Events
@@ -90,10 +86,10 @@ public class CardGameController {
                         card3.setImage(cards[rand3].getImage());
                         card4.setImage(cards[rand4].getImage());
 
-                        card1Val = cards[rand1].getValue();
-                        card2Val = cards[rand2].getValue();
-                        card3Val = cards[rand3].getValue();
-                        card4Val = cards[rand4].getValue();
+                        val1 = cards[rand1].getValue();
+                        val2 = cards[rand2].getValue();
+                        val3 = cards[rand3].getValue();
+                        val4 = cards[rand4].getValue();
 
                         break;
                     }
@@ -104,10 +100,53 @@ public class CardGameController {
     }
 
     /**
-     * Finds a solution for the current set of cards
+     * Finds whether a solution exists for the current set of cards
      */
     @FXML
     protected void findSolution() {
+
+        boolean valid = true;
+
+        //Create a priority queue to sort the values
+        PriorityQueue<Integer> pq = new PriorityQueue<>();
+        pq.add(val1);
+        pq.add(val2);
+        pq.add(val3);
+        pq.add(val4);
+
+        int[] checker = new int[4];
+
+        for(int i = 0; i < 4; i++) {
+            checker[i] = pq.remove();
+        }
+
+        //Check all cases where there is no solution
+        if(checker[0] == 1 && checker[1] == 1 && checker[2] == 1 && checker[3] == 1) {
+            valid = false;
+        }
+
+        if(checker[0] == 2 && checker[1] == 2 && checker[2] == 2 && checker[3] == 2) {
+            valid = false;
+        }
+
+        if(checker[0] == 3 && checker[1] == 10 && checker[2] == 10 && checker[3] == 10) {
+            valid = false;
+        }
+
+        if(checker[0] == 3 && checker[1] == 4 && checker[2] == 6 && checker[3] == 7) {
+            valid = false;
+        }
+
+        if(checker[0] == 13 && checker[1] == 13 && checker[2] == 13 && checker[3] == 13) {
+            valid = false;
+        }
+
+        //Display different output if the output field has a solution or not
+        if(valid) {
+            outField.setText("This hand has a solution.");
+        } else {
+            outField.setText("This hand does not possess a solution");
+        }
 
     }
 
@@ -116,6 +155,30 @@ public class CardGameController {
      */
     @FXML
     protected void verifySolution() {
+        String equation = inField.getText();
+        LinkedList<String> holder = new LinkedList<>();
+
+        for(int i = 0; i < equation.length(); i++) {
+            holder.add(equation.substring(i, i + 1));
+        }
+
+        if(checkNumbers(holder)) {
+            try {
+                System.out.println(eval(equation));
+
+                if (eval(equation) == 24) {
+                    outField.setText("This solution is correct as the cards add to 24");
+                }
+
+                if (eval(equation) != 24) {
+                    outField.setText("This solution is incorrect as the cards add to " + eval(equation));
+                }
+            } catch (EmptyStackException e) {
+                outField.setText("The inputted text is not an equation. Please try again.");
+            }
+        } else {
+            outField.setText("Invalid numbers. Please try again.");
+        }
     }
 
     //------------------------------------------------------------------------------------------------------------------------------------------
@@ -198,5 +261,154 @@ public class CardGameController {
         cards[51] = new Card("C:\\Users\\nycpu\\IdeaProjects\\CSC_311_Individual_Assignment_Cards\\src\\main\\resources\\com\\example\\csc_311_individual_assignment_cards\\Images\\king_of_spades.png", 13);
 
         size = 52;
+    }
+
+    //------------------------------------------------------------------------------------------------------------------------------------------
+    //                                                           Helper Methods
+    //------------------------------------------------------------------------------------------------------------------------------------------
+
+    /**
+     * Evaluate the string into an expression
+     * @param expression the expression being evaluated
+     * @return the number the equation equates to
+     */
+    public int eval(String expression) {
+
+        LinkedList<Integer> operands = new LinkedList<>();
+        LinkedList<Character> operators = new LinkedList<>();
+
+        for (int i = 0; i < expression.length(); i++) {
+            char ch = expression.charAt(i);
+
+            // skip spaces
+            if (ch == ' ') {
+                continue;
+            }
+
+            // obtain numbers
+            if (Character.isDigit(ch)) {
+
+                int num = 0;
+                while (i < expression.length() && Character.isDigit(expression.charAt(i))) {
+                    num = num * 10 + Character.getNumericValue(expression.charAt(i));
+                    i++;
+                }
+                i--;
+                operands.push(num);
+            }
+
+            // check for operators
+            else if (ch == '+' || ch == '-' || ch == '*' || ch == '/' || ch == '(') {
+                if(ch == '(') {
+                    operators.pop();
+                    operands.push(doMath(operators.pop(), operands.pop(), operands.pop()));
+                } else {
+                    while (!operators.isEmpty() && goesFirst(ch, operators.peek())) {
+                        operands.push(doMath(operators.pop(), operands.pop(), operands.pop()));
+                    }
+                }
+                operators.push(ch);
+            }
+        }
+
+        while (!operators.isEmpty()) {
+            operands.push(doMath(operators.pop(), operands.pop(), operands.pop()));
+        }
+
+        return operands.pop();
+    }
+
+
+    /**
+     * Orders the operations within the bounds of PEMDAS (minus the parathesis)
+     * @param op1 first operator
+     * @param op2 second operator
+     * @return whether the first op has priority over the second one
+     */
+    public boolean goesFirst(char op1, char op2) {
+        if ((op1 == '*' || op1 == '/') && (op2 == '+' || op2 == '-')) {
+            return false;
+        }
+        else {
+            return true;
+        }
+    }
+
+    /**
+     * Returns the math equations
+     * @param op the operation being used
+     * @param b the first int
+     * @param a the second int
+     * @return the total value
+     */
+    public int doMath(char op, int b, int a) {
+
+        if(op == '+') {
+            return a + b;
+        } if(op == '-') {
+            return a - b;
+        } if(op == '*') {
+            return a * b;
+        } if(op == '/') {
+            if (b == 0) {
+                throw new UnsupportedOperationException("Cannot divide by zero");
+            }
+            return a / b;
+        }
+        return 0;
+    }
+
+    /**
+     * Checks that all 4 card values are in and not repeated
+     * @param holder Stack with the characters within
+     * @return true if the card values are in and not repeated else false
+     */
+    private boolean checkNumbers(LinkedList<String> holder) {
+
+        //Creating pass vars to check if all values are included and a count variable to make sure there are only 4 numbers
+        boolean pass1 = false, pass2 = false, pass3 = false, pass4 = false;
+        int count = 0;
+
+        //traverse through holder and find all ints
+        for(int i = 0; i < holder.size(); i++) {
+            try{
+
+                int a = Integer.parseInt(holder.get(i));
+
+                //check if all 4 ints match the cards
+                if(!pass1) {
+                    if(a == val1) {
+                        pass1 = true;
+                    }
+                }
+
+                if(!pass2) {
+                    if(a == val2) {
+                        pass2 = true;
+                    }
+                }
+
+                if(!pass3) {
+                    if(a == val3) {
+                        pass3 = true;
+                    }
+                }
+
+                if(!pass4) {
+                    if(a == val4) {
+                        pass4 = true;
+                    }
+                }
+
+                count++;
+
+            } catch(NumberFormatException _) { }
+        }
+
+        //returns true if the specified conditions are all correct
+        if(pass1 && pass2 && pass3 && pass4 && count == 4) {
+            return true;
+        }
+        return false;
     }
 }

@@ -14,7 +14,7 @@
          <children>
             <VBox alignment="CENTER" prefHeight="100.0" prefWidth="200.0">
                <children>
-                  <Button fx:id="solutionButton" mnemonicParsing="false" onAction="#findSolution" prefHeight="26.0" prefWidth="110.0" text="Find a Solution" />
+                  <Button fx:id="solutionButton" mnemonicParsing="false" onAction="#findSolution" prefHeight="26.0" prefWidth="110.0" text="Check Solution" />
                </children>
             </VBox>
             <VBox alignment="CENTER" prefHeight="100.0" prefWidth="400.0">
